@@ -118,43 +118,9 @@ function MosaicTrack({ rows, onPreview, onInteract }: { rows: Tile[][]; onPrevie
     {rows.map((tiles, index) => <div className="v3-mosaic-row" key={index}>
       <div className="v3-mosaic-row-inner">
       {tiles.map(tile => <button className="v3-tile v3-mosaic-tile" key={tile.src} onClick={() => onPreview(tile)} aria-label={`Preview ${tile.alt}`}>
-        <VisualArtwork tile={tile} />
+        <img src={tile.src} alt={tile.alt ?? ""} width={tile.width} height={tile.height} loading="lazy" draggable={false} />
       </button>)}
       </div>
     </div>)}
   </div>;
-}
-
-function VisualArtwork({ tile }: { tile: Tile }) {
-  const image = useRef<HTMLImageElement>(null);
-  const canvas = useRef<HTMLCanvasElement>(null);
-
-  useEffect(() => {
-    const img = image.current!;
-    const pixels = canvas.current!;
-    const draw = () => {
-      if (!img.complete || !img.naturalWidth || !img.clientWidth || !img.clientHeight) return;
-      // One canvas pixel becomes an approximately 8px block on screen.
-      pixels.width = Math.max(1, Math.round(img.clientWidth / 8));
-      pixels.height = Math.max(1, Math.round(img.clientHeight / 8));
-      const context = pixels.getContext("2d");
-      if (!context) return;
-      const scale = Math.min(pixels.width / img.naturalWidth, pixels.height / img.naturalHeight);
-      const width = img.naturalWidth * scale;
-      const height = img.naturalHeight * scale;
-      context.clearRect(0, 0, pixels.width, pixels.height);
-      context.drawImage(img, (pixels.width - width) / 2, (pixels.height - height) / 2, width, height);
-      pixels.dataset.ready = "true";
-    };
-    const resize = new ResizeObserver(draw);
-    resize.observe(img);
-    img.addEventListener("load", draw);
-    draw();
-    return () => { resize.disconnect(); img.removeEventListener("load", draw); };
-  }, [tile.src]);
-
-  return <>
-    <img ref={image} src={tile.src} alt={tile.alt ?? ""} width={tile.width} height={tile.height} loading="lazy" draggable={false} />
-    <canvas ref={canvas} className="v3-mosaic-pixels" aria-hidden="true" />
-  </>;
 }
