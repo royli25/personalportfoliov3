@@ -1,0 +1,886 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: var(--font-geist), ui-sans-serif, system-ui, sans-serif;
+}
+
+/* ===========================================================================
+   LAB TOKEN BLOCK — the only shared abstraction in the system (PRD §6).
+   Lives in BOTH Components/src/app/globals.css and V2/src/app/globals.css,
+   byte-identical. Change here, copy there in the same session.
+
+   Names use Tailwind v4 theme namespaces so utilities generate for free:
+     --color-*  -> bg-canvas, text-ink, border-muted, ...
+     --radius-* -> rounded-card, rounded-control, rounded-chip
+     --shadow-* -> shadow-stack
+     --text-*   -> text-label (carries its own tracking, leading, weight)
+
+   Colour, radius and text tokens are also emitted as plain custom properties
+   on :root, so var(--color-ink) works inside a style prop. Shadows are the
+   exception: Tailwind inlines them into the utility and emits no variable, so
+   use the shadow-stack class rather than var(--shadow-stack).
+   =========================================================================== */
+@theme {
+  --color-surface: #ffffff;
+  --color-canvas: #e7e7e5;
+  --color-ink: #181818;
+  --color-accent: #d4d4d4;
+  --color-muted: #a3a3a3;
+
+  /* Radius scale, deliberately square-leaning: card frames, interactive
+     controls, small chrome. Circles and stadium pills stay rounded-full. */
+  --radius-card: 4px;
+  --radius-control: 2px;
+  --radius-chip: 2px;
+
+  --shadow-stack: 0 8px 32px rgb(0 0 0 / 0.06);
+
+  /* Compact uppercase labels use the shared sans-serif family. */
+  --text-label: 11px;
+  --text-label--line-height: 1.2;
+  --text-label--letter-spacing: 0.12em;
+  --text-label--font-weight: 500;
+}
+/* ======================= END LAB TOKEN BLOCK ============================== */
+
+/* ===========================================================================
+   TYPE SCALE — ported from the `Type` collection + text styles in the
+   components Figma file (page: PersonalPortfolio). Each entry carries its own
+   line-height, tracking and weight, so `text-h1` is the whole style rather
+   than a size that still needs three more classes beside it.
+
+   Line heights that read `auto` in Figma are resolved here to the px value
+   Geist actually produces, so code and canvas agree: 17→22, 15→20, 12→16.
+   =========================================================================== */
+@theme {
+  --text-h1: 30px;
+  --text-h1--line-height: 36px;
+  --text-h1--letter-spacing: -0.02em;
+  --text-h1--font-weight: 400;
+
+  --text-h2: 20px;
+  --text-h2--line-height: 28px;
+  --text-h2--letter-spacing: -0.02em;
+  --text-h2--font-weight: 500;
+
+  --text-h4: 16px;
+  --text-h4--line-height: 21px;
+  --text-h4--letter-spacing: 0.025em;
+  --text-h4--font-weight: 400;
+
+  --text-p1: 17px;
+  --text-p1--line-height: 22px;
+  --text-p1--letter-spacing: -0.02em;
+  --text-p1--font-weight: 400;
+
+  --text-p2: 15px;
+  --text-p2--line-height: 20px;
+  --text-p2--letter-spacing: -0.02em;
+  --text-p2--font-weight: 400;
+
+  --text-eyebrow: 15px;
+  --text-eyebrow--line-height: 20px;
+  --text-eyebrow--letter-spacing: -0.02em;
+  --text-eyebrow--font-weight: 400;
+}
+
+/* ===========================================================================
+   APP SHELL — the dark split layout on `/`. Case studies render against the
+   remapped neutral scale (see DARK RAMP below), so the shell carries its own
+   ramp rather than sharing one and dragging every other route along with it.
+   =========================================================================== */
+@theme {
+  --color-shell: #0a0a0a;
+  /* The rail's wash — a hair above the page, and only at the top. It reads as
+     light falling down the column, which is what separates the rail from the
+     work pane now that no rule does. */
+  --color-shell-wash: #0d0d0d;
+  /* The work pane is the raised tile — a step above the rail so the split
+     reads on an empty home, without climbing as far as `raised` (cards still
+     need somewhere to sit). */
+  --color-shell-pane: #121212;
+  --color-shell-raised: #141414;
+  /* Hover fill on work cards — a real step above `raised`, so the lift reads. */
+  --color-shell-hover: #222222;
+  --color-shell-track: #101010;
+  --color-shell-thumb: #262626;
+  --color-shell-line: #232323;
+  --color-shell-edge: #333333;
+  --color-shell-ink: #ededed;
+  --color-shell-dim: #a3a3a3;
+  /* The work-in-progress banner. It carries its own ink because `text-white`
+     resolves through the DARK RAMP to a dark surface colour — see the note
+     there. Both tokens go when the banner does. */
+  --color-shell-note: #1d4ed8;
+  --color-shell-note-ink: #ffffff;
+  --color-shell-faint: #737373;
+
+  /* One knob for every frame in the shell — media, tiles and buttons alike.
+     Square-leaning to match the LAB radius scale above. */
+  --radius-shell: 6px;
+}
+
+/* Overflow that scrolls but shouldn't advertise it — the nav pill on narrow
+   viewports, where four segments can't fit and wrapping would read as broken. */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* The rail's copy arriving with its section. The headline decodes itself
+   (shell/scramble-text.tsx); everything under it comes out of focus, which
+   covers the swap the scramble doesn't touch. @starting-style means the first
+   frame needs no JS, and the class is only present after boot, so the page you
+   load doesn't animate itself in. */
+.hero-swap {
+  opacity: 1;
+  filter: blur(0px);
+  transition:
+    opacity 260ms var(--ease-out),
+    filter 260ms var(--ease-out);
+
+  @starting-style {
+    opacity: 0;
+    filter: blur(5px);
+  }
+}
+
+/* Gentler, not gone: the copy still fades in, it just doesn't defocus. */
+@media (prefers-reduced-motion: reduce) {
+  .hero-swap {
+    filter: none;
+    transition: opacity 160ms ease;
+  }
+}
+
+/* The work pane is its own scroll container, so it needs its own scrollbar —
+   the default light one reads as a seam against the dark column. */
+.pane-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-shell-edge) transparent;
+}
+.pane-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+.pane-scroll::-webkit-scrollbar-thumb {
+  background: var(--color-shell-edge);
+  border-radius: 999px;
+}
+.pane-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* ===========================================================================
+   CASE STUDY PANEL — opens over the shell in two stages: a scaled-down peek,
+   then 1:1 full screen. Only transform/opacity/border-radius move, all of
+   which the compositor can handle without a relayout.
+
+   Durations live on the destination phase, so each direction gets its own
+   pacing: the expand is deliberate, the collapse and the exit are quick.
+   =========================================================================== */
+:root {
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.case-panel {
+  transform-origin: 50% 50%;
+  transition-property: transform, border-radius, opacity;
+  transition-timing-function: var(--ease-drawer);
+  transition-duration: 380ms;
+  will-change: transform;
+
+  /* Mirrors the `body` rules rather than using `bg-white`/`text-neutral-900`:
+     the dark ramp remaps `white` to a *raised surface* (#1b1b1a), so a Tailwind
+     background would quietly sit a shade above the page it is meant to be. */
+  background: #111110;
+  color: #d7d7d5;
+}
+.case-panel[data-phase="peek"] {
+  transform: scale(0.9);
+  border-radius: 16px;
+  opacity: 1;
+  transition-duration: 340ms;
+
+  /* The entrance, with no JS to schedule it. Starts just under the peek size:
+     never from scale(0), since it has to grow out of something rather than
+     appear from nothing. */
+  @starting-style {
+    transform: scale(0.86);
+    opacity: 0;
+  }
+}
+.case-panel[data-phase="open"] {
+  transform: scale(1);
+  border-radius: 0;
+  opacity: 1;
+  transition-duration: 440ms;
+}
+.case-panel[data-phase="leaving"] {
+  transform: scale(0.86);
+  border-radius: 20px;
+  opacity: 0;
+  transition-duration: 220ms;
+  transition-timing-function: var(--ease-out-strong);
+}
+
+.panel-scrim {
+  opacity: 1;
+  transition: opacity 300ms var(--ease-out-strong);
+
+  @starting-style {
+    opacity: 0;
+  }
+}
+.panel-scrim[data-leaving="true"] {
+  opacity: 0;
+}
+
+/* ===========================================================================
+   PLAYGROUND BOOT — the desktop arrives as a card and loads itself to full
+   screen. Click Playground, watch a counter, land on a machine.
+
+   The desktop is mounted and painting from the first frame; the card is only
+   out of focus. So the blur *clearing* is the real thing resolving, not a
+   still being swapped for a live one — and the two seconds of counter are
+   spent fetching app chunks rather than waiting for a clock.
+
+   Everything animated here is transform, opacity or filter, on the panel and
+   two of its layers. The desktop inside is laid out at full viewport size
+   throughout and only ever scaled — the DeviceFrame rule — so the window,
+   the dock and the wallpaper never reflow between the card and full screen.
+   =========================================================================== */
+
+/* The pop out of the card. A little past 1 and back: the desktop lands rather
+   than arriving, which is the difference between "loaded" and "still going". */
+:root {
+  --ease-pop: cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+.boot-panel {
+  transform-origin: 50% 50%;
+  opacity: 1;
+  transition-property: transform, border-radius, opacity;
+  transition-timing-function: var(--ease-pop);
+  transition-duration: 460ms;
+  will-change: transform;
+  background: #0b0b0b;
+}
+.boot-panel[data-phase="boot"] {
+  /* The case study's peek, to the pixel — a card is a card, and two things
+     that open over this shell should land at the same size. */
+  transform: scale(0.9);
+  border-radius: 16px;
+  transition-duration: 360ms;
+  transition-timing-function: var(--ease-drawer);
+
+  /* The entrance, with no JS to schedule it. Just under the card size, so it
+     grows out of something rather than appearing from nothing. */
+  @starting-style {
+    transform: scale(0.86);
+    opacity: 0;
+  }
+}
+.boot-panel[data-phase="open"] {
+  transform: scale(1);
+  border-radius: 0;
+}
+.boot-panel[data-phase="leaving"] {
+  transform: scale(0.86);
+  border-radius: 20px;
+  opacity: 0;
+  transition-duration: 220ms;
+  transition-timing-function: var(--ease-out-strong);
+}
+
+/* Scaled past the frame while blurred: a blur samples transparency outside its
+   own box, so at 1:1 the card would carry a soft grey border all the way
+   round. The overshoot puts that edge outside the crop, and unwinding it is
+   the push-in that reads as focus being found. */
+.boot-stage {
+  filter: blur(0px);
+  transform: scale(1);
+  transition:
+    filter 460ms var(--ease-out-strong),
+    transform 460ms var(--ease-out-strong);
+}
+.boot-panel[data-phase="boot"] .boot-stage,
+.playground-poster-stage {
+  filter: blur(12px);
+  transform: scale(1.04);
+}
+
+/* Holds the wallpaper back far enough for the white HUD to read. The pane's
+   rest surface uses the same plate, so closing lands on the peek you just left. */
+.boot-veil,
+.playground-poster-veil {
+  pointer-events: none;
+  background: rgba(8, 8, 8, 0.55);
+}
+.boot-veil {
+  opacity: 0;
+  transition: opacity 320ms var(--ease-out-strong);
+}
+.boot-panel[data-phase="boot"] .boot-veil {
+  opacity: 1;
+}
+
+/* Rest desktop is the work pane itself. Hover tucks it off the edges and
+   lifts the veil — feedback that the surface is the way back in. Scale and
+   opacity only; the inner stage keeps the blur-crop overshoot. */
+.playground-poster {
+  transform: scale(1);
+  transition: transform 200ms var(--ease-out-strong);
+}
+.playground-poster-veil {
+  opacity: 1;
+  transition: opacity 200ms var(--ease-out-strong);
+}
+@media (hover: hover) and (pointer: fine) {
+  .playground-poster:hover {
+    transform: scale(0.97);
+  }
+  .playground-poster:hover .playground-poster-veil {
+    opacity: 0.7;
+  }
+}
+.playground-poster:focus-visible {
+  transform: scale(0.97);
+}
+.playground-poster:focus-visible .playground-poster-veil {
+  opacity: 0.7;
+}
+
+/* The HUD is a stack so the confirm row can sit on it without moving the
+   bar. The row is taken out of flow (`bottom: 100%`) — if it lived in the
+   column, the whole stack would re-centre and the bar would jump. When the
+   confirm is up, the HUD recedes so the action is the only thing at full
+   strength. */
+.boot-stack {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 50%;
+  transform: translate(-50%, -50%);
+}
+.boot-hud {
+  width: 100%;
+  opacity: 1;
+  transition: opacity 280ms var(--ease-out-strong);
+}
+.boot-stack[data-ask] .boot-hud {
+  opacity: 0.28;
+}
+
+.boot-crumb {
+  position: absolute;
+  inset-inline: 0;
+  bottom: calc(100% + 28px);
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  pointer-events: auto;
+  color: #fff;
+  opacity: 1;
+  transform: translateY(0);
+  transition:
+    opacity 280ms var(--ease-out-strong),
+    transform 280ms var(--ease-out-strong);
+
+  @starting-style {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+.boot-crumb-copy {
+  margin: 0;
+  font-size: 15px;
+  line-height: 20px;
+  font-weight: 450;
+  letter-spacing: -0.012em;
+  white-space: nowrap;
+}
+.boot-crumb-go {
+  flex-shrink: 0;
+  height: 32px;
+  padding: 0 14px;
+  border-radius: 8px;
+  background: #fff;
+  color: #111;
+  font-size: 13px;
+  line-height: 32px;
+  font-weight: 500;
+  transition:
+    background 160ms var(--ease-out-strong),
+    transform 160ms var(--ease-out-strong);
+}
+@media (hover: hover) and (pointer: fine) {
+  .boot-crumb-go:hover {
+    background: #e8e8e8;
+  }
+}
+.boot-crumb-go:active {
+  transform: scale(0.97);
+}
+
+.boot-hud-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 10px;
+}
+.boot-label,
+.boot-count {
+  font-size: 14px;
+  line-height: 1;
+  font-weight: 400;
+  color: #fff;
+  white-space: nowrap;
+}
+.boot-count {
+  font-variant-numeric: tabular-nums;
+}
+
+.boot-bar {
+  position: relative;
+  display: block;
+  height: 3px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.22);
+}
+/* Scaled, not re-widthed: this moves ninety times over the ramp and a
+   transform keeps every one of them off the layout. */
+.boot-fill {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: #fff;
+  transform-origin: left center;
+}
+
+/* Only once there's a desktop under it to close — during the boot the count
+   is the whole card and a control in the corner competes with it. */
+.boot-close {
+  opacity: 1;
+  transition: opacity 200ms var(--ease-out-strong) 220ms;
+}
+.boot-panel[data-phase="boot"] .boot-close,
+.boot-panel[data-phase="leaving"] .boot-close {
+  opacity: 0;
+  pointer-events: none;
+  transition-delay: 0ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .boot-crumb {
+    transition-duration: 0ms;
+    transform: none;
+  }
+  .boot-hud {
+    transition-duration: 0ms;
+  }
+  .boot-panel {
+    transition-property: opacity;
+    transform: none !important;
+  }
+  .boot-stage {
+    transition-duration: 0ms;
+    transform: none !important;
+    filter: none !important;
+  }
+  .playground-poster {
+    transition-property: none;
+  }
+  .playground-poster:hover,
+  .playground-poster:focus-visible {
+    transform: none;
+  }
+}
+
+/* ===========================================================================
+   DESKTOP WINDOW — launches out of its dock icon and quits back into it.
+
+   The dock hands the desktop the icon's box, the desktop turns it into a
+   vector from the window's centre, and it arrives here as two custom
+   properties. That's the only reason this is CSS driving a JS-supplied value
+   rather than a JS animation: the entrance is @starting-style, so there is no
+   first frame to schedule and no chance of the window painting at full size
+   for one frame before it shrinks.
+
+   Only transform and opacity move. The fit scale lives on a child, so nothing
+   here relayouts the application inside.
+   =========================================================================== */
+.desktop-window {
+  opacity: 1;
+  transform: translate(0, 0) scale(1);
+  transition:
+    opacity 200ms var(--ease-out-strong),
+    transform 400ms var(--ease-drawer);
+  will-change: transform;
+
+  @starting-style {
+    opacity: 0;
+    transform: translate(var(--launch-dx, 0px), var(--launch-dy, 0px)) scale(0.16);
+  }
+}
+.desktop-window[data-phase="closing"] {
+  opacity: 0;
+  transform: translate(var(--launch-dx, 0px), var(--launch-dy, 0px)) scale(0.16);
+  transition:
+    opacity 220ms var(--ease-out-strong),
+    transform 280ms var(--ease-drawer);
+}
+@media (prefers-reduced-motion: reduce) {
+  .desktop-window {
+    transition-duration: 0ms;
+  }
+}
+
+/* Scroll spotlight: the pane item you're on holds full strength, the rest sit
+   back. `data-dim` is set by the shell's measure loop; hover restores a dimmed
+   item so the falloff never fights the pointer. */
+[data-spot] {
+  transition: opacity 450ms var(--ease-out-strong);
+}
+[data-spot][data-dim="true"] {
+  opacity: 0.55;
+}
+@media (hover: hover) and (pointer: fine) {
+  [data-spot][data-dim="true"]:hover {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-spot] {
+    transition-duration: 0ms;
+  }
+}
+
+/* Work card title: collapsed to nothing, then drops out of the shot on hover.
+   grid 0fr→1fr is the one layout animation this is allowed — there's no
+   transform that can grow the slot. The inner translate is the "drop".
+
+   The slot grows *inside* a card whose height the ratio has already fixed
+   (panes.tsx), so this steals height from the media rather than adding it to
+   the card: the shot crops a few percent and nothing below the card moves.
+   Growing the card instead pushes the whole stack down on every hover. */
+.work-card-title {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 180ms var(--ease-out-strong);
+}
+.work-card-title > div {
+  min-height: 0;
+  overflow: hidden;
+}
+.work-card-title p {
+  padding-top: 14px;
+  opacity: 0;
+  transform: translateY(-8px);
+  transform-origin: top;
+  transition:
+    opacity 180ms var(--ease-out-strong),
+    transform 180ms var(--ease-out-strong);
+}
+@media (hover: hover) and (pointer: fine) {
+  .group:hover .work-card-title {
+    grid-template-rows: 1fr;
+  }
+  .group:hover .work-card-title p {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.group:focus-visible .work-card-title {
+  grid-template-rows: 1fr;
+}
+.group:focus-visible .work-card-title p {
+  opacity: 1;
+  transform: translateY(0);
+}
+@media (prefers-reduced-motion: reduce) {
+  .work-card-title,
+  .work-card-title p {
+    transition-duration: 0ms;
+  }
+  .work-card-title p {
+    transform: none;
+  }
+}
+
+/* Work-in-progress banner: dismissing it collapses the bar and the shell
+   grows back into the space, so the last thing it does is hand the viewport
+   over. Same grid 0fr trick as the work-card title, for the same reason —
+   there's no transform that collapses a row and lets a sibling reflow into
+   it. No entrance: the banner is part of the page arriving. */
+.wip-banner {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition: grid-template-rows 260ms var(--ease-out-strong);
+}
+.wip-banner > div {
+  min-height: 0;
+  overflow: hidden;
+  transition: opacity 200ms var(--ease-out-strong);
+}
+.wip-banner[data-leaving] {
+  grid-template-rows: 0fr;
+}
+.wip-banner[data-leaving] > div {
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wip-banner,
+  .wip-banner > div {
+    transition-duration: 0ms;
+  }
+}
+
+/* ===========================================================================
+   GALLERY LIGHTBOX — a modal, so it scales from center, slightly and fast.
+   =========================================================================== */
+.lightbox {
+  opacity: 1;
+  transition: opacity 200ms var(--ease-out-strong);
+
+  @starting-style {
+    opacity: 0;
+  }
+}
+.lightbox[data-closing="true"] {
+  opacity: 0;
+  transition-duration: 160ms;
+}
+/* Keyed per image, so paging re-runs this entrance for each shot. Never from
+   scale(0) — it grows out of something, not from nothing. */
+.lightbox-img {
+  opacity: 1;
+  transform: scale(1);
+  transition:
+    opacity 220ms var(--ease-out-strong),
+    transform 220ms var(--ease-out-strong);
+
+  @starting-style {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+}
+.lightbox[data-closing="true"] .lightbox-img {
+  transform: scale(0.97);
+}
+@media (prefers-reduced-motion: reduce) {
+  .lightbox,
+  .lightbox-img {
+    transition-duration: 0ms !important;
+    transform: none !important;
+  }
+}
+
+.panel-close,
+.panel-hint {
+  transition:
+    opacity 200ms var(--ease-out-strong),
+    transform 200ms var(--ease-out-strong);
+}
+.panel-close[data-visible="false"],
+.panel-hint[data-visible="false"] {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Sits on the card, not the gutter: at peek the gutter is only ~5% of the
+   viewport, which disappears entirely on a short window. */
+.panel-hint {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-neutral-400, #a3a3a3);
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .case-panel {
+    transition-duration: 0ms !important;
+  }
+  .case-panel[data-phase="enter"] {
+    opacity: 1;
+  }
+}
+
+html {
+  scroll-behavior: smooth;
+  color-scheme: dark;
+  background: #111110;
+}
+
+body {
+  font-family: var(--font-sans);
+  color: #d7d7d5;
+  background: #111110;
+  -webkit-font-smoothing: antialiased;
+}
+
+code,
+kbd,
+pre,
+samp {
+  font-family: var(--font-sans);
+}
+
+::selection {
+  background: #e5e5e3;
+  color: #181818;
+}
+
+/* Entrance: sections fade up as they cross into view. Driven by an
+   IntersectionObserver flipping React state — no layout thrash, no library.
+
+   Start visible under .no-js so a missing client bundle never leaves the
+   page stuck at opacity 0. A tiny inline script swaps to .js before paint. */
+.reveal {
+  opacity: 1;
+  transform: none;
+}
+html.js .reveal:not(.is-in) {
+  opacity: 0;
+  transform: translateY(18px);
+}
+html.js .reveal {
+  transition:
+    opacity 0.7s cubic-bezier(0.25, 0, 0, 1),
+    transform 0.7s cubic-bezier(0.25, 0, 0, 1);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+.reveal.is-in {
+  opacity: 1;
+  transform: none;
+}
+
+/* Underline strokes draw themselves once the heading is in view. */
+.ink-path {
+  stroke-dasharray: var(--len, 200);
+  stroke-dashoffset: var(--len, 200);
+}
+.is-in .ink-path {
+  animation: ink-draw 0.85s cubic-bezier(0.65, 0, 0.35, 1) 0.25s forwards;
+}
+@keyframes ink-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* Diagonal hatch behind every showcase card — the reference's card texture. */
+.hatch {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    #232322 0 1px,
+    transparent 1px 7px
+  );
+}
+
+/* The decision/solution stack holds one row at full strength and drops the
+   rest back. Both values are sprung per frame from scroll position in
+   `focus-deck.tsx` — there's nothing to declare here. */
+
+/* Filler placeholders get a slow shimmer so an empty slot still reads as
+   "media goes here" rather than "this section is broken". */
+@keyframes shimmer {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 0.85;
+  }
+}
+
+/* ===========================================================================
+   DARK RAMP — the site is permanently dark. Components are still authored
+   against the light neutral scale (bg-white, text-neutral-900, …); Tailwind
+   v4 utilities resolve through var(--color-*), so remapping the scale here
+   renders everything dark without touching a single component class. Demos
+   are exempt: they pin their own light palette (LIGHT_SCOPE) because they
+   are product mocks, not site surfaces.
+
+   The handful of arbitrary-hex utilities that bypass the variables get
+   targeted exceptions at the bottom.
+   =========================================================================== */
+:root {
+  /* Inverted neutral ramp. `white` is the card/surface colour everywhere,
+     so it maps to a raised dark surface, not pure black. */
+  --color-white: #1b1b1a;
+  --color-neutral-50: #222221;
+  --color-neutral-100: #2a2a29;
+  --color-neutral-200: #343433;
+  --color-neutral-300: #474746;
+  --color-neutral-400: #8b8b89;
+  --color-neutral-500: #a9a9a7;
+  --color-neutral-600: #c1c1bf;
+  --color-neutral-700: #d9d9d7;
+  --color-neutral-800: #e5e5e3;
+  --color-neutral-900: #efefed;
+  --color-neutral-950: #f7f7f5;
+
+  /* The Mark highlighter swipe and quote rule: light amber would swallow
+     the light text, so both drop to a deep amber. */
+  --color-amber-200: #6d4e07;
+
+  /* Badge green reads muddy on dark surfaces; lift it. */
+  --color-emerald-600: #34d399;
+}
+
+/* Arbitrary-hex utilities that skip the variable remap. */
+.border-\[\#ebebeb\] {
+  border-color: #343433;
+}
+.bg-\[\#fbfbfb\] {
+  background-color: #222221;
+}
+/* The teal principle card keeps genuinely white ink on its unchanged bg. */
+.bg-\[\#0f766e\] {
+  --color-white: #ffffff;
+}
+/* The yellow principle card keeps genuinely dark ink on its unchanged bg. */
+.bg-\[\#fbbf24\] {
+  --color-neutral-900: #181818;
+}
+/* Stats blocks are a deliberately light skeuomorphic artifact — keep their
+   dark label text instead of letting the inverted ramp wash it out. */
+.bg-\[\#f2f2f2\] {
+  --color-neutral-950: #0a0a0a;
+}
+/* ============================ END DARK RAMP =============================== */
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  html.js .reveal:not(.is-in) {
+    opacity: 1;
+    transform: none;
+  }
+  .reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+  .ink-path {
+    stroke-dashoffset: 0;
+  }
+  .is-in .ink-path {
+    animation: none;
+  }
+  [data-filler] {
+    animation: none !important;
+  }
+}
