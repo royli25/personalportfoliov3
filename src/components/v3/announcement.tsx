@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 
-const announcement = "Currently looking for internship opportunities. Bullish on prediction markets agentic commerce jev instinct & muse (personal AI) design environment tools (paper design, noon, rivet, etc.)";
+const announcement = "I'm Roy, currently spending my time exploring prediction markets / agentic commerce / jev / instinct & muse (personal AI) / design environment tools (paper design, rivet, noon, etc.). Outside of tech, you'll find me playing bogie golf, scratching my head on a poker table, or attending live concerts. Lets chat soon.";
 
 export function Announcement() {
   const viewport = useRef<HTMLDivElement>(null);
@@ -64,7 +64,7 @@ export function Announcement() {
   }, []);
 
   return <div className="v3-announcement">
-    <div className="v3-announcement-viewport" ref={viewport} tabIndex={0} role="region" aria-label="Internship availability and interests">
+    <div className="v3-announcement-viewport" ref={viewport} tabIndex={0} role="region" aria-label="About Roy and current interests">
       <span ref={text} className="v3-announcement-text">{announcement}</span>
     </div>
   </div>;

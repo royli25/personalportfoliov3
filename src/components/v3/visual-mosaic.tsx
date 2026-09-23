@@ -1,57 +1,22 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import type { Tile } from "@/data/site";
 
 export function VisualMosaic({ tiles, onPreview }: { tiles: Tile[]; onPreview: (tile: Tile) => void }) {
-  const [start, setStart] = useState(0);
-  const [perRow, setPerRow] = useState(4);
-  const [paused, setPaused] = useState(false);
-  const [hovered, setHovered] = useState(false);
-  const [focused, setFocused] = useState(false);
-  const [visible, setVisible] = useState(false);
-  const [reducedMotion, setReducedMotion] = useState(true);
-  const [hidden, setHidden] = useState(false);
-  const root = useRef<HTMLDivElement>(null);
-  const count = Math.min(perRow * 2, tiles.length);
-
-  useEffect(() => {
-    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const preference = () => setReducedMotion(media.matches);
-    const visibility = () => setHidden(document.hidden);
-    preference(); visibility();
-    media.addEventListener("change", preference);
-    document.addEventListener("visibilitychange", visibility);
-    const resize = new ResizeObserver(([entry]) => {
-      setPerRow(entry.contentRect.width <= 600 ? 3 : 4);
-    });
-    const observer = new IntersectionObserver(([entry]) => setVisible(entry.isIntersecting), { threshold: 0.1 });
-    if (root.current) { resize.observe(root.current); observer.observe(root.current); }
-    return () => { resize.disconnect(); observer.disconnect(); media.removeEventListener("change", preference); document.removeEventListener("visibilitychange", visibility); };
-  }, []);
-
-  useEffect(() => {
-    if (paused || hovered || focused || !visible || reducedMotion || hidden || tiles.length <= count) return;
-    const timer = window.setInterval(() => setStart(value => (value + count) % tiles.length), 6000);
-    return () => window.clearInterval(timer);
-  }, [paused, hovered, focused, visible, reducedMotion, hidden, count, tiles.length]);
-
   if (!tiles.length) return null;
-  const current = Array.from({ length: count }, (_, i) => tiles[(start + i) % tiles.length]);
-  const split = Math.ceil(current.length / 2);
-  const rows = [current.slice(0, split), current.slice(split)].filter(row => row.length);
+  const split = Math.ceil(tiles.length / 2);
+  const rows = [tiles.slice(0, split), tiles.slice(split)].filter(row => row.length);
 
-  return <div className="v3-mosaic" ref={root} aria-label="Visuals mosaic" aria-roledescription="carousel"
-    onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
-    onFocusCapture={() => setFocused(true)} onBlurCapture={event => { if (!event.currentTarget.contains(event.relatedTarget)) setFocused(false); }}>
+  return <div className="v3-mosaic" aria-label="Visuals mosaic">
     <div className="v3-mosaic-controls">
       <span>Prop 1.1 Visuals</span>
     </div>
-    <MosaicTrack key={`${start}-${perRow}`} rows={rows} onPreview={onPreview} onInteract={() => setPaused(true)} />
+    <MosaicTrack rows={rows} onPreview={onPreview} />
   </div>;
 }
 
-function MosaicTrack({ rows, onPreview, onInteract }: { rows: Tile[][]; onPreview: (tile: Tile) => void; onInteract: () => void }) {
+function MosaicTrack({ rows, onPreview }: { rows: Tile[][]; onPreview: (tile: Tile) => void }) {
   const viewport = useRef<HTMLDivElement>(null);
   const drag = useRef<{ id: number; x: number; scroll: number; moved: boolean } | null>(null);
   const suppressClick = useRef(false);
@@ -85,10 +50,9 @@ function MosaicTrack({ rows, onPreview, onInteract }: { rows: Tile[][]; onPrevie
   }
 
   return <div className={`v3-mosaic-stage${dragging ? " is-dragging" : ""}`} ref={viewport}
-    onScroll={updateEdges} onWheel={onInteract}
+    onScroll={updateEdges}
     onPointerDown={event => {
       suppressClick.current = false;
-      onInteract();
       if (event.pointerType !== "mouse" || event.button !== 0) return;
       drag.current = { id: event.pointerId, x: event.clientX, scroll: event.currentTarget.scrollLeft, moved: false };
     }}

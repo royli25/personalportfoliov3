@@ -55,12 +55,7 @@ function GitHubMark() {
 
 export function CaseNav() {
   return (
-    <header className={`${shell("narrow")} mt-6 flex items-center justify-between gap-4`}>
-      <Link href="/" className="group flex items-center gap-2">
-        <span className="font-sans text-[18px] font-medium tracking-[-0.02em] text-neutral-900">
-          Roy Li
-        </span>
-      </Link>
+    <header className="case-study-nav flex min-h-7 items-center">
       <Link
         href="/#case-studies"
         className="group inline-flex items-center gap-1 font-sans text-[12px] text-neutral-400 transition-colors hover:text-neutral-900"
@@ -79,8 +74,7 @@ export function CaseHero({ study }: { study: CaseStudy }) {
     <>
       <Reveal className="w-full">
         <Column className="scroll-mt-24">
-          {/* 128 clears the nav by the same distance the frame does. */}
-          <h1 className="mt-32 font-sans text-h1 text-neutral-900">
+          <h1 className="font-sans text-h1 text-neutral-900">
             {study.title}
             {study.accent ? ` ${study.accent}` : ""}
           </h1>

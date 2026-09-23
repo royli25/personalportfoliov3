@@ -88,7 +88,7 @@ export function SectionRail({
         inside it and pin the rail to the section instead of the viewport.
         Hidden below xl, where the labels would run into the reading column.
       */
-      className="group fixed top-1/2 left-5 z-40 hidden -translate-y-1/2 flex-col items-start gap-2.5 xl:flex"
+      className="section-rail group fixed top-1/2 left-5 z-40 hidden -translate-y-1/2 flex-col items-start gap-2.5 xl:flex"
     >
       {items.map((item, i) => {
         const current = i === active;

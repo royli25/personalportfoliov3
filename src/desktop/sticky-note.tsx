@@ -110,7 +110,7 @@ function moved(start: Frame, edge: Edge, dx: number, dy: number): Frame {
   return { left, top, width, height };
 }
 
-export function StickyNote() {
+export function StickyNote({ topInset = 40 }: { topInset?: number }) {
   const layerRef = useRef<HTMLDivElement>(null);
   const noteRef = useRef<HTMLElement>(null);
   const fieldRef = useRef<HTMLTextAreaElement>(null);
@@ -134,7 +134,7 @@ export function StickyNote() {
       if (!pinned.current || layer.clientWidth <= 0) return;
       const next: Frame = {
         left: Math.max(40, layer.clientWidth - SIZE - 64),
-        top: 40,
+        top: topInset,
         width: SIZE,
         height: SIZE,
       };
@@ -145,7 +145,7 @@ export function StickyNote() {
     const ro = new ResizeObserver(pin);
     ro.observe(layer);
     return () => ro.disconnect();
-  }, []);
+  }, [topInset]);
 
   const paint = useCallback((next: Frame) => {
     const layer = layerRef.current;

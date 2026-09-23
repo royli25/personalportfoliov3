@@ -1,7 +1,7 @@
 "use client";
 
-import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { DesktopBackdrop } from "./backdrop";
 import { AppWindow } from "./window";
 import { Dock, DOCK_RESERVE } from "./dock";
 import { APPS } from "./registry";
@@ -28,8 +28,7 @@ import { StickyNote } from "./sticky-note";
  * icon quits — the mock's traffic lights are painted chrome, not buttons, so
  * the dock (and Escape) is the way back out.
  *
- * There is no menu bar. It was a strip of chrome that opened nothing, and the
- * 26px it cost bought the product nothing either.
+ * The menu bar shares its wallpaper framing and clock with the corner peek.
  */
 
 /** Breathing room between the window and the edges of its band. */
@@ -46,10 +45,14 @@ export function Desktop({
    * everyone who never opens Playground.
    */
   warm = true,
+  backToPortfolio = false,
+  onReady,
 }: {
   booted?: boolean;
   onEscape?: () => void;
   warm?: boolean;
+  backToPortfolio?: boolean;
+  onReady?: () => void;
 }) {
   const boxRef = useRef<HTMLDivElement>(null);
 
@@ -134,24 +137,7 @@ export function Desktop({
 
   return (
     <div className="relative flex h-full w-full flex-col overflow-hidden bg-[#0b0b0b]">
-      {/* 6016² source — `fill` hands Next the whole responsive pipeline, so
-          the 17MB original never reaches a browser.
-
-          `priority` because this only mounts once you've asked for the
-          desktop, and it is the entire boot card: late and the counter runs
-          over a black rectangle instead of a machine coming into focus. */}
-      <Image
-        src="/desktop/13-Ventura-Light.jpg"
-        alt=""
-        fill
-        /* Capped at 2048 rather than letting a retina viewport ask for 3840.
-           This is a smooth gradient that spends its first moments blurred —
-           the extra 3.5× of pixels buys nothing and is the difference between
-           the boot card being a desktop and being a black rectangle. */
-        sizes="(min-width: 1024px) 2048px, 100vw"
-        className="absolute inset-0 object-cover"
-        priority
-      />
+      <DesktopBackdrop backToPortfolio={backToPortfolio} onReady={onReady} />
 
       <div className="relative z-10 flex-1">
         {/* Furniture is the room, including while the boot card is still
@@ -160,7 +146,7 @@ export function Desktop({
             `inert` until the blur clears, so a dock click can't launch
             an app from underneath the HUD. */}
         <div className="absolute inset-0" inert={!booted || undefined}>
-          <StickyNote />
+          <StickyNote topInset={backToPortfolio ? 200 : 40} />
         </div>
 
         {/* pointer-events stay off the band so an empty desktop does not
@@ -168,7 +154,7 @@ export function Desktop({
         <div
           className="pointer-events-none absolute inset-0 flex items-center justify-center"
           style={{
-            paddingTop: INSET,
+            paddingTop: INSET + 28,
             paddingRight: INSET,
             paddingBottom: DOCK_RESERVE,
             paddingLeft: INSET,

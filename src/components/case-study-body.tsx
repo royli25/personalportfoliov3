@@ -24,14 +24,14 @@ export function CaseStudyBody({ study }: { study: CaseStudy }) {
   );
 
   return (
-    <>
+    <div className="case-study-page w-full min-w-0">
+      <CaseNav />
       {/*
         No gap here on purpose: every child already owns its top rhythm, and a
         container gap would compose with it so no boundary would land on the
         spacing scale (the 64px block gap read as 88, sections as 136).
       */}
-      <div className="flex min-h-screen w-full min-w-0 flex-col items-center overflow-x-hidden px-3 pb-10">
-        <CaseNav />
+      <div className="case-study-content flex min-h-screen w-full min-w-0 flex-col items-center overflow-x-hidden px-3 pb-10">
         <CaseHero study={study} />
 
         {study.sections.map((section, i) => (
@@ -54,6 +54,6 @@ export function CaseStudyBody({ study }: { study: CaseStudy }) {
           animates transform, which would make it the containing block. A blog
           has no section titles, so it has no rail either. */}
       {rail.length > 0 && <SectionRail items={rail} />}
-    </>
+    </div>
   );
 }

@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { DesktopBackdrop } from "@/desktop/backdrop";
 import { usePagePeel } from "./page-peel";
 import { Announcement } from "./announcement";
 import { PixelPreview } from "./pixel-preview";
@@ -19,8 +21,8 @@ const views: { id: View; label: string }[] = [
 
 export function Portfolio({ visuals, components }: { visuals: Tile[]; components: Tile[] }) {
   const peelPage = usePagePeel();
+  const router = useRouter();
   const [selected, setSelected] = useState<Tile | null>(null);
-  const [clock, setClock] = useState({ date: "", time: "" });
   const dialog = useRef<HTMLDialogElement>(null);
   useEffect(() => {
     // Keep old shared links working with section anchors.
@@ -29,14 +31,6 @@ export function Portfolio({ visuals, components }: { visuals: Tile[]; components
       history.replaceState(null, "", `/#${legacy}`);
       document.getElementById(legacy!)?.scrollIntoView({ behavior: "instant" });
     }
-    const tick = () => { const d = new Date(); setClock({
-      date: d.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
-      time: d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }).toLowerCase(),
-    }); };
-    tick(); const timer = window.setInterval(tick, 60000);
-    return () => {
-      clearInterval(timer);
-    };
   }, []);
   function preview(tile: Tile) { setSelected(tile); dialog.current?.showModal(); }
 
@@ -45,15 +39,20 @@ export function Portfolio({ visuals, components }: { visuals: Tile[]; components
       <a className="v3-skip" href="#visuals">Skip to work</a>
       <section id="home" className="v3-hero" aria-label="Introduction">
         <Announcement />
-        <Link className="v3-corner" href="/playground" aria-label="Open the interactive playground" onClick={event => {
+        <Link className="v3-corner" href="/playground" aria-label="Open the interactive playground"
+          onPointerEnter={() => router.prefetch("/playground")}
+          onFocus={() => router.prefetch("/playground")}
+          onClick={event => {
           if (!peelPage || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.detail === 0 || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
           event.preventDefault();
-          const rect = event.currentTarget.getBoundingClientRect();
-          peelPage({ width: rect.width, height: rect.height, expanded: window.matchMedia("(hover: hover) and (pointer: fine)").matches });
+          const paper = event.currentTarget.querySelector<HTMLElement>(".v3-paper")!;
+          const rect = paper.getBoundingClientRect();
+          peelPage({ width: rect.width, baseWidth: paper.offsetWidth, height: rect.height, top: rect.top, right: rect.right,
+            shade: Number(getComputedStyle(paper, "::after").opacity) });
         }}>
           <span className="v3-paper" aria-hidden="true"><img className="v3-fold" src="/figma/fold.svg" alt="" width="161" height="161" /></span>
-          <span className="v3-desktop-peek">
-            <span className="v3-menubar"><span>{clock.date}</span><span>{clock.time}</span><img src="/figma/search.svg" width="12" height="12" alt="" /></span>
+          <span className="v3-desktop-peek" aria-hidden="true" inert>
+            <DesktopBackdrop />
           </span>
         </Link>
         <div className="v3-intro">
